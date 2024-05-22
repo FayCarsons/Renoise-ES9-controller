@@ -1,0 +1,10 @@
+[package]
+name = "es9"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.86"
+clap = "4.5.4"
+coreaudio-rs = "0.12.0"
+tokio = { version = "1.37.0", features = ["full", "net"] }
