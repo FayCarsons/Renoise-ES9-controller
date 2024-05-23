@@ -71,12 +71,14 @@ local function on_note(note)
   end
 end
 
+-- NOTE: Definite problem here!!
 local function monitor(index)
   local song = renoise.song()
 
   for pos, column in song.pattern_iterator:lines_in_track(index) do
     -- TODO: Not sure what to do here, the idea is to add a notifier to every note in
-    -- the selected track so that when a note
+    -- the selected track so that when a note plays the on_note callback is
+    -- called with that note as an arg
     for _, note in ipairs(line.note_columns) do
       note.value_observable:remove_notifier(on_note)
       note.value_observable:add_notifier(function() on_note(note) end)
