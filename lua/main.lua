@@ -1,5 +1,5 @@
 -- Instantiate UDP client singleton if not already instantiated
-if ~_G.ES9_sender then
+if not _G.ES9_sender then
   local connection_timeout = 2000
 
   local client, socket_error = renoise.Socket.create_client(
@@ -15,9 +15,9 @@ end
 local client = _G.ES9_sender
 
 -- Function to convert an integer to a byte string
-local function int_to_bytes(value, num_bytes)
+local function int_to_bytes(value)
   local bytes = {}
-  for i = num_bytes, 1, -1 do
+  for i = 8, 1, -1 do
     bytes[i] = string.char(value % 256)
     value = math.floor(value / 256)
   end
