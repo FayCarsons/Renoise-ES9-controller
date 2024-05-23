@@ -40,21 +40,21 @@ local function float_to_bytes(value)
     exponent = exponent + 126
   end
   local v = sign * 0x80000000 + exponent * 0x800000 + mantissa
-  return int_to_bytes(v, 4)
+  return int_to_bytes(v)
 end
 
 -- Sends message to Rust server via UDP client
--- format NULL_BYTE{8 byte integer}{8 byte float}NULL_BYTE
+-- format {8 byte integer}{8 byte float}NULL_BYTE
 -- integer 'output' is note # % 12 with 0 -- 7 / C -- G# are valid regardless of octave
 -- float 'value' is all 4 bytes of effect column ?
 local function set_es9(output, value)
-  local buff = '\0'
-  local int_bytes = int_to_bytes(output, 8)
+  local int_bytes = int_to_bytes(output)
   local float_bytes = float_to_bytes(value)
-  print(string.format("{channel: { int: %d, bytes: %a }, value: { float: %f, bytes: %a }}", output, int_bytes, value,
+  print(string.format(
+    [[{channel: { int: %d, bytes: 0x%s },
+       value: { float: %f, bytes: 0x%s }}]], output, int_bytes, value,
     float_bytes))
-  buff = buff .. int_bytes .. float_bytes .. '\0'
-  local _, err = client:send(buff)
+  local _, err = client:send(int_bytes .. float_bytes .. '\0')
   if err then
     renoise.app():show_warning(err)
   end
