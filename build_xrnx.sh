@@ -1,17 +1,26 @@
 #!/bin/zsh
 
-# Directory containing the Renoise tool assets
-tool_dir="lua"
+INPUT_DIR=lua
+OUTPUT_DIR=ES9.xrnx
 
-# Output .xrnx file name
-output_file="ES9.xrnx"
-
-if [ -f ./ES9.xrnx ]; then
-  rm ES9.xrnx
+# If .xrnx exists, delete it
+if [ -f ./$OUTPUT_DIR ]; then
+  rm $OUTPUT_DIR
   echo "Deleted old tool, building new. . ."
 fi
 
-# Create a zip file from the contents of the tool directory and rename it to .xrnx
-zip -r "$output_file" "$tool_dir"
+# If input dir can't be found then exit
+if [ ! -d $INPUT_DIR ]; then
+  echo "Can't find lua folder"
+  exit 1
+fi
 
-echo "Created ${output_file} from ${tool_dir}"
+# Enter input directory and zip its contents into an .xrnx file
+# Echo message if successful, and 'else' to echo error message on failure
+if cd ./$INPUT_DIR && zip -vr ../$OUTPUT_DIR *; then  
+  echo "Created .xrnx file!"
+else
+  echo "Failed to create .xrnx file!"
+  exit 1
+fi
+

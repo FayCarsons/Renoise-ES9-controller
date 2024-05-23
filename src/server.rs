@@ -1,6 +1,5 @@
 use crate::ES9;
 use std::io;
-use std::sync::{Arc, RwLock};
 
 use tokio::net::UdpSocket;
 
@@ -11,9 +10,10 @@ pub struct Server {
 
 impl Server {
     pub async fn new() -> std::io::Result<Self> {
+        println!("Initializating UDP server . . .");
         Ok(Self {
-            socket: UdpSocket::bind("127.0.0.1:8000").await?,
-            buf: Vec::with_capacity(16),
+            socket: UdpSocket::bind("127.0.0.1:8080").await?,
+            buf: Vec::with_capacity(8),
         })
     }
     pub async fn run(self) -> Result<(), io::Error> {
@@ -23,6 +23,7 @@ impl Server {
             // Check if there's a message
             let (size, _) = socket.recv_from(&mut buf).await?;
             let recv = &buf[..size];
+            println!("RECEIVED: {recv:?}");
             let mut command = recv.split(|c| *c == b'/').skip(1);
 
             match (command.next(), command.next()) {
@@ -32,7 +33,7 @@ impl Server {
                         std::str::from_utf8_unchecked(value).parse::<f32>(),
                     ) {
                         (Ok(channel), Ok(value)) => {
-                            ES9.update(channel, value);
+                            ES9::set(channel, value);
                         }
                         _ => {
                             println!("RECEIVED MALFORMED MESSAGE!");

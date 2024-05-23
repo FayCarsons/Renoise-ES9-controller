@@ -1,67 +1,50 @@
 mod constants;
 mod es9;
+mod repl;
 mod server;
 
 use crate::es9::ES9;
-use coreaudio::audio_unit::{
-    macos_helpers::{audio_unit_from_device_id, get_audio_device_ids, get_device_name},
-    render_callback::{self, data},
-    AudioUnit,
-};
 
-static mut ES9: ES9 = ES9::new();
+use clap::{Parser, ValueEnum};
 
-fn init_es9() -> Result<AudioUnit, coreaudio::Error> {
-    let audio_unts = get_audio_device_ids().expect("Cannot get devices!");
-    let es9_id = audio_unts
-        .into_iter()
-        .find(|device_id| {
-            let name = get_device_name(*device_id);
-            name.map(|s| s.trim().to_lowercase())
-                .is_ok_and(|s| s.contains("es9"))
-        })
-        .expect("ES9 not connected!");
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum AppMode {
+    Server,
+    TestRepl,
+}
 
-    let mut es9 = audio_unit_from_device_id(es9_id, false)?;
-
-    let stream_format = es9.output_stream_format()?;
-    println!("ES9 stream format: {:#?}", &stream_format);
-
-    assert!(constants::SAMPLE_FORMAT == stream_format.sample_format);
-
-    type Args = render_callback::Args<data::Interleaved<f32>>;
-
-    {
-        es9.set_render_callback(move |args| {
-            let Args {
-                num_frames, data, ..
-            } = args;
-            for i in 0..num_frames {
-                unsafe {
-                    let samples = ES9.values();
-                    data.buffer[i..i + data.channels].copy_from_slice(samples)
-                }
-            }
-
-            Ok(())
-        })?;
+impl AppMode {
+    fn parse(input: &str) -> Result<Self, String> {
+        match input {
+            "s" | "server" => Ok(Self::Server),
+            "r" | "repl" => Ok(Self::TestRepl),
+            _ => Err(String::from("Invalid arg")),
+        }
     }
+}
 
-    Ok(es9)
+#[derive(Parser)]
+pub struct AppArgs {
+    #[arg(value_enum, value_parser = AppMode::parse)]
+    mode: AppMode,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let server = server::Server::new()
-        .await
-        .map_err(|e| format!("Cannot initialize server: {e}"))?;
+    let args = AppArgs::parse();
 
-    let mut es9 = init_es9().map_err(|e| format!("Cannot initialize ES9: {e}"))?;
+    match args.mode {
+        AppMode::Server => {
+            let server = server::Server::new()
+                .await
+                .map_err(|e| format!("Cannot initialize server: {e}"))?;
+            server
+                .run()
+                .await
+                .map_err(|e| format!("Server error: {e}"))?;
+        }
+        AppMode::TestRepl => repl::repl().map_err(|e| format!("Repl failure: {e}"))?,
+    }
 
-    server
-        .run()
-        .await
-        .map_err(|e| format!("Server error: {e}"))?;
-
-    es9.stop().map_err(|e| format!("Cannot stop ES9: {e}"))
+    Ok(())
 }
