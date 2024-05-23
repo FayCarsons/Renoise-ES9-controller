@@ -1,18 +1,28 @@
--- Instantiate UDP client singleton if not already instantiated
-if not _G.ES9_sender then
+local function initialize_udp_client()
   local connection_timeout = 2000
 
   local client, socket_error = renoise.Socket.create_client(
     "127.0.0.1", 8080, renoise.Socket.PROTOCOL_UDP, connection_timeout
   )
   if socket_error then
-    renoise.app():show_warning("CANT INITIALIZE SOCKET " .. socket_error)
+    renoise.app():show_warning("Cannot initialize UDP client: " .. socket_error)
+    return nil
   else
-    _G.ES9_sender = client
+    return client
   end
 end
 
-local client = _G.ES9_sender
+-- Instantiate UDP client singleton if not already instantiated
+if not (rawget(_G, "ES9_CLIENT") or nil) then
+  local success, client_or_error = pcall(initialize_udp_client)
+  if success and client_or_error then
+    rawset(_G, "ES9_CLIENT", client_or_error)
+  else
+    renoise.app():show_warning("Failed to initialize UDP client: " .. client_or_error)
+  end
+end
+
+local client = _G.ES9_CLIENT
 
 -- Function to convert an integer to a byte string
 local function int_to_bytes(value)
